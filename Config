@@ -1,0 +1,26 @@
+package.AWSWesleyExternalClusterConnector = {
+    interfaces = (1.0);
+
+    build-system = bgo-wrap-make;
+    build-tools = {
+        1.0 = {
+            BrazilMakeGo = 2.0;
+            GoLang       = 1.x;
+        };
+    };
+
+    dependencies = {
+        1.0 = {
+        };
+    };
+
+    runtime-dependencies = {
+        1.0 = {
+        };
+    };
+
+    deploy = {
+        map = (default, "-gopath/**");
+    };
+
+};
