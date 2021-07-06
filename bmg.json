@@ -1,4 +1,4 @@
 {
-  "alias": "golang.a2z.com/AWSWesleyExternalClusterConnector",
-  "modules_enabled": true
+    "__where_is_modules_enabled": "BMG go module is disabled as we are managing dependencies outside of Brazil.",
+    "alias": "golang.a2z.com/eks-connector"
 }
