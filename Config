@@ -6,6 +6,7 @@ package.AWSWesleyExternalClusterConnector = {
         1.0 = {
             BrazilMakeGo = 2.0;
             GoLang       = 1.x;
+            Go3p-Github-Golangci-GolangciLint = 1.x;
         };
     };
 
