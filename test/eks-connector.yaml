@@ -1,0 +1,170 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: eks-connector
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: eks-connector-cr
+rules:
+  - apiGroups: [ "" ]
+    resources:
+      - users
+    verbs:
+      - impersonate
+    resourceNames:
+      - 'arn:aws:sts::737074157848:assumed-role/admin/zaoxinz-Isengard'
+      - 'arn:aws:iam::737074157848:user/console'
+      - 'arn:aws:iam::123456789012:user/srajakum'
+      - 'arn:aws:iam::737074157848:role/admin'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: eks-connector-secret
+  namespace: eks-connector
+rules:
+  - apiGroups: [ "" ]
+    resources:
+      - secrets
+    verbs: [ "get", "list", "create", "update", "patch", "delete" ]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: eks-connector-sa
+  namespace: eks-connector
+# We are selectively mounting SA to certain containers only.
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/service-account-token
+metadata:
+  name: eks-connector-sa
+  namespace: eks-connector
+  annotations:
+    kubernetes.io/service-account.name: eks-connector-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: eks-connector-crb
+subjects:
+  - kind: ServiceAccount
+    name: eks-connector-sa
+    namespace: eks-connector
+roleRef:
+  kind: ClusterRole
+  name: eks-connector-cr
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: eks-connector-secret-crb
+  namespace: eks-connector
+subjects:
+  - kind: ServiceAccount
+    name: eks-connector-sa
+roleRef:
+  kind: Role
+  name: eks-connector-secret
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: srajakum-crb
+subjects:
+  - kind: User
+    name: arn:aws:iam::123456789012:user/srajakum
+  - kind: User
+    name: arn:aws:iam::737074157848:role/admin
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: zaoxinz-console-crb
+subjects:
+  - kind: User
+    name: arn:aws:iam::737074157848:user/console
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: eks-connector
+  name: eks-connector-deployment
+  labels:
+    app: eks-connector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eks-connector
+  template:
+    metadata:
+      labels:
+        app: eks-connector
+    spec:
+      serviceAccountName: eks-connector-sa
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+        - key: CriticalAddonsOnly
+          operator: Exists
+      initContainers:
+        - name: connector-init
+          image: public.ecr.aws/n9j3i2o6/connector:dev
+          imagePullPolicy: Always
+          env:
+            - name: CODE
+              value: %SSM_ACTIVATION_CODE%
+            - name: ID
+              value: %SSM_ACTIVATION_ID%
+          args:
+            - "init"
+            - "--activation.id=$(ID)"
+            - "--activation.code=$(CODE)"
+          volumeMounts:
+            - name: service-account-token
+              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+            - name: eks-agent-vault
+              mountPath: /var/lib/amazon/ssm/Vault
+      containers:
+        - name: connector-agent
+          image: public.ecr.aws/n9j3i2o6/agent:dev
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: eks-connector-shared
+              mountPath: /var/eks/shared
+            - name: eks-agent-vault
+              mountPath: /var/lib/amazon/ssm/Vault
+        - name: connector-proxy
+          image: public.ecr.aws/n9j3i2o6/connector:dev
+          imagePullPolicy: Always
+          args:
+            - "server"
+          volumeMounts:
+            - name: service-account-token
+              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+            - name: eks-connector-shared
+              mountPath: /var/eks/shared
+      volumes:
+        - name: eks-connector-shared
+          emptyDir: { }
+        - name: eks-agent-vault
+          emptyDir: { }
+        - name: service-account-token
+          secret:
+            secretName: eks-connector-sa
