@@ -38,7 +38,7 @@ var initCmd = &cobra.Command{
 			registration,
 		)
 
-		if initer.Initialize() != nil {
+		if err = initer.Initialize(); err != nil {
 			klog.Fatalf("failed to initiate eks-connector: %v", err)
 		}
 	},
