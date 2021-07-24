@@ -4,21 +4,14 @@ kind: Namespace
 metadata:
   name: eks-connector
 ---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+apiVersion: v1
+kind: Secret
 metadata:
-  name: eks-connector-cr
-rules:
-  - apiGroups: [ "" ]
-    resources:
-      - users
-    verbs:
-      - impersonate
-    resourceNames:
-      - 'arn:aws:sts::737074157848:assumed-role/admin/zaoxinz-Isengard'
-      - 'arn:aws:iam::737074157848:user/console'
-      - 'arn:aws:iam::123456789012:user/srajakum'
-      - 'arn:aws:iam::737074157848:role/admin'
+  name: eks-connector-activation-config
+  namespace: eks-connector
+type: Opaque
+data:
+  code: %SSM_ACTIVATION_CODE%
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -49,19 +42,6 @@ metadata:
     kubernetes.io/service-account.name: eks-connector-sa
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: eks-connector-crb
-subjects:
-  - kind: ServiceAccount
-    name: eks-connector-sa
-    namespace: eks-connector
-roleRef:
-  kind: ClusterRole
-  name: eks-connector-cr
-  apiGroup: rbac.authorization.k8s.io
----
-apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: eks-connector-secret-crb
@@ -72,32 +52,6 @@ subjects:
 roleRef:
   kind: Role
   name: eks-connector-secret
-  apiGroup: rbac.authorization.k8s.io
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: srajakum-crb
-subjects:
-  - kind: User
-    name: arn:aws:iam::123456789012:user/srajakum
-  - kind: User
-    name: arn:aws:iam::737074157848:role/admin
-roleRef:
-  kind: ClusterRole
-  name: cluster-admin
-  apiGroup: rbac.authorization.k8s.io
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: zaoxinz-console-crb
-subjects:
-  - kind: User
-    name: arn:aws:iam::737074157848:user/console
-roleRef:
-  kind: ClusterRole
-  name: cluster-admin
   apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: apps/v1
@@ -129,7 +83,10 @@ spec:
           imagePullPolicy: Always
           env:
             - name: CODE
-              value: %SSM_ACTIVATION_CODE%
+              valueFrom:
+                secretKeyRef:
+                  name: eks-connector-activation-config
+                  key: code
             - name: ID
               value: %SSM_ACTIVATION_ID%
           args:

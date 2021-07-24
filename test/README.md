@@ -6,6 +6,9 @@ This is a __temporary__ doc for setting up EKS connector pod for CCS testing.
 
 ## How
 
+### Prepare
+See [EKS connector beta onboarding doc](https://quip-amazon.com/lyErAIMd6Se1/How-to-onboard-to-EKS-connector-beta) for steps.
+
 ### Deploy
 
 To deploy it we need to create an SSM hybrid activation first.
@@ -18,7 +21,7 @@ export SSM_ACTIVATION_ID=""
 export SSM_ACTIVATION_CODE=""
 
 # Apply the manifest
-sed "s~%SSM_ACTIVATION_CODE%~'$SSM_ACTIVATION_CODE'~g; s~%SSM_ACTIVATION_ID%~$SSM_ACTIVATION_ID~g" \
+sed "s~%SSM_ACTIVATION_ID%~$SSM_ACTIVATION_ID~g; s~%SSM_ACTIVATION_CODE%~$(echo -n $SSM_ACTIVATION_CODE | base64)~g" \
     eks-connector.yaml | kubectl apply -f -
 # After a few seconds the connector pod should be healthy in kubernetes.
 
@@ -40,6 +43,6 @@ aws ssm start-session \
 Just delete the manifest
 
 ```bash
-sed "s~%SSM_ACTIVATION_CODE%~'$SSM_ACTIVATION_CODE'~g; s~%SSM_ACTIVATION_ID%~$SSM_ACTIVATION_ID~g" \
+sed "s~%SSM_ACTIVATION_ID%~$SSM_ACTIVATION_ID~g; s~%SSM_ACTIVATION_CODE%~$(echo -n $SSM_ACTIVATION_CODE | base64)~g" \
     eks-connector.yaml | kubectl delete -f -
 ```
