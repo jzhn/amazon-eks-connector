@@ -60,9 +60,9 @@ func init() {
 	initCmd.Flags().String("state.baseDir",
 		state.DirSsmVault,
 		"The vault folder of ssm agent container")
-	initCmd.Flags().String("state.secretName",
+	initCmd.Flags().String("state.secretNamePrefix",
 		"eks-connector-state",
-		"Kubernetes Secret name used to persist eks-connector state")
+		"Prefix of Kubernetes Secret name used to persist eks-connector state")
 	initCmd.Flags().String("state.secretNamespace",
 		"eks-connector",
 		"Kubernetes namespace of the Secret used to persist eks-connector state")

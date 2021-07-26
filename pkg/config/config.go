@@ -48,7 +48,11 @@ type ActivationConfig struct {
 
 // StateConfig is the sub-configuration for storing states of EKS connector.
 type StateConfig struct {
-	BaseDir         string `mapstructure:"baseDir"`
-	SecretName      string `mapstructure:"secretName"`
+	// BaseDir is the SSM agent Vault dir that contains SSM agent state.
+	BaseDir string `mapstructure:"baseDir"`
+	// SecretNamePrefix is the prefix of secret name that contains EKS connector state.
+	// EKS connector Pod ordinal index in StatefulSet is appended.
+	SecretNamePrefix string `mapstructure:"secretNamePrefix"`
+	// SecretNamespace is the namespace of secret that container EKS connector state.
 	SecretNamespace string `mapstructure:"secretNamespace"`
 }

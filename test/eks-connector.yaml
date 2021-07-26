@@ -55,17 +55,18 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   namespace: eks-connector
-  name: eks-connector-deployment
+  name: eks-connector
   labels:
     app: eks-connector
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: eks-connector
+  serviceName: "eks-connector"
   template:
     metadata:
       labels:
@@ -82,6 +83,10 @@ spec:
           image: public.ecr.aws/n9j3i2o6/connector:dev
           imagePullPolicy: Always
           env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
             - name: CODE
               valueFrom:
                 secretKeyRef:

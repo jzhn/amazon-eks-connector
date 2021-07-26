@@ -3,6 +3,7 @@ package k8s
 
 import (
 	"context"
+	"fmt"
 
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -18,6 +19,10 @@ type Secret interface {
 	Get() (map[string][]byte, error)
 }
 
+// NewSecretInCluster creates a Secret that is suitable for eks-connector pods
+// based on stateConfig.
+// The secret will be accessed using in-cluster Kubernetes credentials
+// and suffixed with pod ordinal index in StatefulSet to avoid conflicts.
 func NewSecretInCluster(stateConfig *config.StateConfig) (Secret, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -27,7 +32,14 @@ func NewSecretInCluster(stateConfig *config.StateConfig) (Secret, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewSecret(stateConfig.SecretName, stateConfig.SecretNamespace, k8sClient), nil
+	podIndexProvider := NewPodIndexProvider()
+	podIndex, err := podIndexProvider.Get()
+	if err != nil {
+		return nil, err
+	}
+	secretName := fmt.Sprintf("%s-%s", stateConfig.SecretNamePrefix, podIndex)
+
+	return NewSecret(secretName, stateConfig.SecretNamespace, k8sClient), nil
 }
 
 func NewSecret(name, namespace string, clientset kubernetes.Interface) Secret {
