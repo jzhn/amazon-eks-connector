@@ -1,3 +1,11 @@
+##
+# This is a manifest file for EKS connector preprod.
+#
+# Diffs:
+# - ssm agent log level is set to trace (from info)
+# - Uses test images with Always pull policy
+# - Points to ssm gamma
+##
 ---
 apiVersion: v1
 kind: Namespace
@@ -76,10 +84,16 @@ data:
         "ConsumptionOrder": [
             "OnPrem"
         ]
+      },
+      "Ssm": {
+        "Endpoint": "https://sonic.us-east-1.amazonaws.com"
+      },
+      "Mgs": {
+        "Endpoint": "https://olivia-mgs.us-east-1.amazonaws.com"
       }
     }
   seelog.xml: |
-    <seelog type="adaptive" mininterval="2000000" maxinterval="100000000" critmsgcount="500" minlevel="info">
+    <seelog type="adaptive" mininterval="2000000" maxinterval="100000000" critmsgcount="500" minlevel="trace">
         <exceptions>
             <exception filepattern="test*" minlevel="error"/>
         </exceptions>
@@ -129,8 +143,8 @@ spec:
           operator: Exists
       initContainers:
         - name: connector-init
-          image: public.ecr.aws/t3f3q7h5/h9ob0mzb:0.0.1
-          imagePullPolicy: IfNotPresent
+          image: public.ecr.aws/n9j3i2o6/connector:dev
+          imagePullPolicy: Always
           env:
             - name: POD_NAME
               valueFrom:
@@ -148,6 +162,7 @@ spec:
             - "--activation.id=$(EKS_ACTIVATION_ID)"
             - "--activation.code=$(EKS_ACTIVATION_CODE)"
             - "--agent.region=%AWS_REGION%"
+            - "--agent.endpoint=https://sonic.us-east-1.amazonaws.com"
           volumeMounts:
             - name: service-account-token
               mountPath: /var/run/secrets/kubernetes.io/serviceaccount
@@ -159,7 +174,7 @@ spec:
                 - all
       containers:
         - name: connector-agent
-          image: public.ecr.aws/r9s4y3l0/amazon-ssm-agent:3.1.90.0
+          image: public.ecr.aws/e2b5o4e5/amazon-ssm-agent:3.1.90.0
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: eks-connector-shared
@@ -180,8 +195,8 @@ spec:
               drop:
                 - all
         - name: connector-proxy
-          image: public.ecr.aws/t3f3q7h5/h9ob0mzb:0.0.1
-          imagePullPolicy: IfNotPresent
+          image: public.ecr.aws/n9j3i2o6/connector:dev
+          imagePullPolicy: Always
           args:
             - "server"
           volumeMounts:

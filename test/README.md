@@ -19,14 +19,15 @@ agent restarts.
 # Fill in the activation ID and activation code.
 export SSM_ACTIVATION_ID=""
 export SSM_ACTIVATION_CODE=""
+export AWS_REGION="us-east-1"
 
 # Apply the manifest
-sed "s~%SSM_ACTIVATION_ID%~$SSM_ACTIVATION_ID~g; s~%SSM_ACTIVATION_CODE%~$(echo -n $SSM_ACTIVATION_CODE | base64)~g" \
+sed "s~%AWS_REGION%~$AWS_REGION~g; s~%EKS_ACTIVATION_ID%~$EKS_ACTIVATION_ID~g; s~%EKS_ACTIVATION_CODE%~$(echo -n $EKS_ACTIVATION_CODE | base64)~g" \
     eks-connector.yaml | kubectl apply -f -
 # After a few seconds the connector pod should be healthy in kubernetes.
 
 # Now get the managed instance at SSM.
-aws ssm describe-instance-information --filters Key=ActivationIds,Values=$SSM_ACTIVATION_ID
+aws ssm describe-instance-information --filters Key=ActivationIds,Values=$EKS_ACTIVATION_ID
 # If you are lucky you should see exactly one managed instance.
 # Alternatively, grep the logs at init container, which should print out the instance id.
 
@@ -43,6 +44,6 @@ aws ssm start-session \
 Just delete the manifest
 
 ```bash
-sed "s~%SSM_ACTIVATION_ID%~$SSM_ACTIVATION_ID~g; s~%SSM_ACTIVATION_CODE%~$(echo -n $SSM_ACTIVATION_CODE | base64)~g" \
+sed "s~%AWS_REGION%~$AWS_REGION~g; s~%EKS_ACTIVATION_ID%~$EKS_ACTIVATION_ID~g; s~%EKS_ACTIVATION_CODE%~$(echo -n $EKS_ACTIVATION_CODE | base64)~g" \
     eks-connector.yaml | kubectl delete -f -
 ```
